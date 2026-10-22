@@ -1,0 +1,335 @@
+{% comment %}
+  Drop countdown for product pages. Shows a hero banner and a countdown to a merchant-set
+  date and time (in the store's timezone). While the countdown runs, the product's own
+  add-to-cart controls on this page are hidden. At zero, the banner and countdown hide and
+  the add-to-cart controls come back.
+  Below the countdown, a "You may also like" grid of catalog products to browse while waiting.
+{% endcomment %}
+
+<script
+  src="{{ 'drop-countdown.js' | asset_url }}"
+  defer
+></script>
+
+{% render 'resource-list-styles' %}
+
+{% liquid
+  assign product = closest.product
+  if request.visual_preview_mode and product == blank
+    assign product = collections.all.products.first
+  endif
+
+  # Shopify parses date strings in the store's timezone, so every customer sees the same moment.
+  assign drop_input = section.settings.drop_date | strip | append: ' ' | append: section.settings.drop_time | strip
+  assign drop_at = drop_input | date: '%s'
+  assign has_valid_date = true
+  if section.settings.drop_date == blank or drop_at == drop_input
+    assign has_valid_date = false
+  endif
+
+  assign now = 'now' | date: '%s' | plus: 0
+  assign is_upcoming = false
+  if has_valid_date and product != blank
+    assign drop_at_number = drop_at | plus: 0
+    if drop_at_number > now
+      assign is_upcoming = true
+    endif
+  endif
+%}
+
+{%- if is_upcoming -%}
+  {% style %}
+    {% comment %}
+      Hides this product's buy buttons (incl. "Buy it now"), sticky add-to-cart and quick add
+      for as long as the countdown for it is upcoming. drop-countdown.js flips data-state at zero.
+    {% endcomment %}
+    body:has(drop-countdown[data-product-id="{{ product.id }}"][data-state="upcoming"])
+      :is(
+        .buy-buttons-block:has(product-form-component[data-product-id="{{ product.id }}"]),
+        sticky-add-to-cart[data-product-id="{{ product.id }}"],
+        .quick-add[data-product-id="{{ product.id }}"]
+      ) {
+      display: none !important;
+    }
+  {% endstyle %}
+
+  <drop-countdown
+    class="section section--page-width drop-countdown spacing-style"
+    style="{% render 'spacing-style', settings: section.settings %}"
+    data-drop-at="{{ drop_at }}"
+    data-product-id="{{ product.id }}"
+    data-state="upcoming"
+  >
+    {%- if section.settings.image != blank -%}
+      <div class="drop-countdown__hero">
+        {{
+          section.settings.image
+          | image_url: width: 2400
+          | image_tag:
+            widths: '600, 900, 1200, 1600, 2000, 2400',
+            sizes: '(min-width: 1200px) 1200px, 100vw',
+            loading: 'eager',
+            fetchpriority: 'high',
+            class: 'drop-countdown__hero-image'
+        }}
+      </div>
+    {%- endif -%}
+
+    <div class="drop-countdown__timer">
+      {%- if section.settings.heading != blank -%}
+        <h2 class="drop-countdown__heading h3">{{ section.settings.heading }}</h2>
+      {%- endif -%}
+      <div
+        class="drop-countdown__units"
+        role="timer"
+        aria-label="{{ 'drop_countdown.time_until_drop' | t }}"
+      >
+        {%- assign units = 'days,hours,minutes,seconds' | split: ',' -%}
+        {%- for unit in units -%}
+          {%- assign unit_label_key = 'drop_countdown.' | append: unit -%}
+          <div class="drop-countdown__unit">
+            <span
+              class="drop-countdown__value h2"
+              data-unit="{{ unit }}"
+              aria-hidden="true"
+            >
+              --
+            </span>
+            <span class="drop-countdown__label">{{ unit_label_key | t }}</span>
+          </div>
+        {%- endfor -%}
+      </div>
+      <p class="drop-countdown__date">
+        {{ drop_at | date: '%B %-d, %Y · %-I:%M %p %Z' }}
+      </p>
+    </div>
+
+    {%- if section.settings.show_products -%}
+      {%- liquid
+        assign other_products = collections.all.products | reject: 'id', product.id
+      -%}
+      {%- if other_products.size > 0 -%}
+        <div class="drop-countdown__products">
+          <div class="drop-countdown__products-header">
+            <h2 class="h4">{{ section.settings.products_heading }}</h2>
+            <a
+              class="drop-countdown__view-all"
+              href="{{ routes.all_products_collection_url }}"
+            >
+              {{- 'drop_countdown.view_all' | t -}}
+            </a>
+          </div>
+          <ul
+            class="resource-list resource-list--grid list-unstyled"
+            style="
+              --resource-list-columns: repeat({{ section.settings.columns }}, 1fr);
+              --resource-list-columns-mobile: repeat(2, 1fr);
+              --resource-list-column-gap-desktop: 16px;
+              --resource-list-row-gap-desktop: 24px;
+            "
+          >
+            {%- for card_product in other_products limit: section.settings.products_count -%}
+              <li class="resource-list__item">
+                {% render 'resource-card',
+                  resource_type: 'product',
+                  resource: card_product,
+                  image_width: 600,
+                  image_sizes: '(min-width: 750px) 25vw, 50vw',
+                  product_view_context: 'recommendation'
+                %}
+              </li>
+            {%- endfor -%}
+          </ul>
+        </div>
+      {%- endif -%}
+    {%- endif -%}
+  </drop-countdown>
+{%- elsif request.design_mode and has_valid_date == false -%}
+  <div class="section section--page-width drop-countdown spacing-style">
+    <p class="drop-countdown__notice">{{ 'drop_countdown.missing_date' | t }}</p>
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .drop-countdown {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-2xl, 48px);
+    text-align: center;
+  }
+
+  .drop-countdown[data-state='live'] {
+    display: none;
+  }
+
+  .drop-countdown__hero-image {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .drop-countdown__heading {
+    margin-block-end: var(--margin-md, 16px);
+  }
+
+  .drop-countdown__units {
+    display: flex;
+    justify-content: center;
+    gap: clamp(12px, 4vw, 40px);
+  }
+
+  .drop-countdown__unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 4ch;
+  }
+
+  .drop-countdown__value {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .drop-countdown__label {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text));
+  }
+
+  .drop-countdown__date,
+  .drop-countdown__notice {
+    margin-block-start: var(--margin-md, 16px);
+    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text));
+  }
+
+  .drop-countdown__products {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--page-width);
+    margin-inline: auto;
+    padding-inline: var(--page-margin);
+    text-align: start;
+  }
+
+  .drop-countdown__products-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-block-end: var(--margin-lg, 24px);
+  }
+
+  .drop-countdown__products-header h2 {
+    margin: 0;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Drop countdown",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Drop"
+    },
+    {
+      "type": "text",
+      "id": "drop_date",
+      "label": "Drop date",
+      "placeholder": "2026-11-28",
+      "info": "Format: YYYY-MM-DD. Applies to every product assigned to this template."
+    },
+    {
+      "type": "text",
+      "id": "drop_time",
+      "label": "Drop time",
+      "default": "10:00",
+      "info": "24-hour format, HH:MM, in your store's timezone."
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Countdown heading",
+      "default": "Dropping soon"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Hero image",
+      "info": "Upload the original file. Shopify serves resized versions automatically."
+    },
+    {
+      "type": "header",
+      "content": "You may also like"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_products",
+      "label": "Show products",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "products_heading",
+      "label": "Heading",
+      "default": "You may also like",
+      "visible_if": "{{ section.settings.show_products }}"
+    },
+    {
+      "type": "range",
+      "id": "products_count",
+      "label": "Product count",
+      "min": 4,
+      "max": 24,
+      "step": 4,
+      "default": 8,
+      "visible_if": "{{ section.settings.show_products }}"
+    },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "Columns",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 4,
+      "visible_if": "{{ section.settings.show_products }}"
+    },
+    {
+      "type": "header",
+      "content": "t:content.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 48
+    }
+  ],
+  "presets": [
+    {
+      "name": "Drop countdown",
+      "category": "t:categories.products"
+    }
+  ]
+}
+{% endschema %}

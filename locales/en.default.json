@@ -8,6 +8,15 @@
  * ------------------------------------------------------------
  */
 {
+  "drop_countdown": {
+    "days": "Days",
+    "hours": "Hours",
+    "minutes": "Minutes",
+    "seconds": "Seconds",
+    "time_until_drop": "Time until drop",
+    "view_all": "View all",
+    "missing_date": "Set a drop date in the section settings to start the countdown."
+  },
   "accessibility": {
     "account": "Account",
     "active_filters": "Active filters:",
@@ -109,7 +118,6 @@
     // AR button to view 3D product model in physical space
     "view_in_your_space": "View in your space",
     // Button to view complete collection/product list
-    "view_all": "View all",
     "more": "More",
     "zoom": "Zoom",
     "zoom_media": "Zoom media {{ index }}",
