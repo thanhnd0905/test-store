@@ -9,18 +9,6 @@
  */
 {
   "sections": {
-    "drop_countdown_8mUrfb": {
-      "type": "drop-countdown",
-      "name": "Drop countdown",
-      "settings": {
-        "drop_date": "",
-        "drop_time": "8:00",
-        "heading": "Dropping soon",
-        "image": "shopify://shop_images/Gemini_Generated_Image_kvz94pkvz94pkvz9.png",
-        "padding-block-start": 48,
-        "padding-block-end": 48
-      }
-    },
     "main": {
       "type": "product-information",
       "blocks": {
@@ -338,10 +326,26 @@
         "padding-block-start": 0,
         "padding-block-end": 0
       }
+    },
+    "drop_countdown_8mUrfb": {
+      "type": "drop-countdown",
+      "name": "Drop countdown",
+      "settings": {
+        "drop_date": "2026-10-23",
+        "drop_time": "8:00",
+        "heading": "Dropping soon",
+        "image": "shopify://shop_images/Gemini_Generated_Image_kvz94pkvz94pkvz9.png",
+        "show_products": true,
+        "products_heading": "You may also like",
+        "products_count": 8,
+        "columns": 4,
+        "padding-block-start": 48,
+        "padding-block-end": 48
+      }
     }
   },
   "order": [
-    "drop_countdown_8mUrfb",
-    "main"
+    "main",
+    "drop_countdown_8mUrfb"
   ]
 }
