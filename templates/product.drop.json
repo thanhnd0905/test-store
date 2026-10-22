@@ -332,7 +332,7 @@
       "name": "Drop countdown",
       "settings": {
         "drop_date": "2026-10-23",
-        "drop_time": "15:00",
+        "drop_time": "5:59",
         "heading": "Dropping soon",
         "image": "shopify://shop_images/Gemini_Generated_Image_e47zrce47zrce47z.png",
         "show_products": true,
